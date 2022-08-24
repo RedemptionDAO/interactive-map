@@ -1,7 +1,4 @@
-mapbox_settings = {
-    "accesstoken": "", # INSERT API KEY HERE OR USE ENV VARIABLE
-    "style": "mapbox://styles/ccervone/cl67dlb1h001k14qct08obk0a"
-}
+mapbox_token = "" # INSERT API KEY HERE OR USE ENV VARIABLE
 mode_bar_config = {
     "modeBarButtonsToRemove": [
         "pan2d", "select2d", "lasso2d", "toggleHover", "resetViewMapbox"
