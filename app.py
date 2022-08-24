@@ -16,7 +16,7 @@ from shapely.geometry import MultiPolygon, shape
 
 #----------------------- LOCAL APP DEPENDENCIES -------------------------------#
 
-from settings import mapbox_settings, mode_bar_config
+from settings import mapbox_token, mode_bar_config
 
 #----------------------- CONSTANTS AND DATA -----------------------------------#
 
@@ -25,6 +25,11 @@ DF = pd.DataFrame.from_records([f['properties'] for f in GEO['features']])
 BLOCK_LIST = sorted(DF['BlockName'].unique())
 BASIN_LIST = sorted(DF['Basin'].unique())
 COLORS = px.colors.qualitative.D3[:len(BLOCK_LIST)]
+MAP_OPTIONS = {
+    'Satellite Image': 'mapbox://styles/ccervone/cl67dlb1h001k14qct08obk0a',
+    'Roads & Places': 'mapbox://styles/ccervone/cl76p13ph001414kxg4ls0nnp'
+}
+DEFAULT_MAP = 'Roads & Places'
 
 #----------------------- HELPER FUNCTIONS -------------------------------------#
 
@@ -52,7 +57,7 @@ def calc_mapbox_zoom(polygon):
     return zoom
 
 
-def make_map(block_list, opacity=.5):
+def make_map(block_list, opacity=.5, maptype=DEFAULT_MAP):
 
     data_frame = (DF[DF['BlockName']
                   .isin(block_list)]
@@ -78,7 +83,8 @@ def make_map(block_list, opacity=.5):
         mapbox=dict(
             center=dict(lat=center_y, lon=center_x),
             zoom=zoom,
-            **mapbox_settings
+            accesstoken=mapbox_token,
+            style=MAP_OPTIONS.get(maptype, DEFAULT_MAP)
         ),
         margin=dict(l=0, r=0, t=0, b=0),
         coloraxis_showscale=False,
@@ -105,23 +111,29 @@ sidebar = html.Div(
         ),
         html.Br(),
         html.Div(
-            [                
-                html.P("Basin Name", style={"display": "inline-block"}),
+            [             
+                html.P("Map Type", style={"display": "inline-block", "fontSize": "small"}),
+                dcc.Dropdown(
+                    id="map-select",
+                    options=[{"label": x, "value": x} for x in MAP_OPTIONS.keys()],
+                    value=DEFAULT_MAP,
+                    style={"margin-left": "1px", "width": "14rem", "fontSize": "small"},                    
+                ),    
+                html.P("Basin Name", style={"margin-top": "14px", "fontSize": "small"}),
                 dcc.Dropdown(
                     id="basin-select",
                     options=[{"label": x, "value": x} for x in BASIN_LIST],
                     value=BASIN_LIST,
-                    style={"margin-left": "1px", "width": "14rem"},
+                    style={"margin-left": "1px", "width": "14rem", "fontSize": "small"},
                     multi=True
                 ),
-                html.P("Block Name", style={"margin-top": "10px"}),
+                html.P("Block Name", style={"margin-top": "14px", "fontSize": "small"}),
                 dcc.Dropdown(
                     id="block-select",
-                    style={"margin-left": "1px", "width": "14rem"},
+                    style={"margin-left": "1px", "width": "14rem", "fontSize": "small"},
                     multi=True
                 ),
-                html.Br(),
-                html.P("Adjust Opacity", style={"display": "inline-block"}),
+                html.P("Adjust Opacity", style={"margin-top": "14px", "fontSize": "small"}),
                 dcc.Slider(
                     0, 100, 10,
                     value=50, 
@@ -133,7 +145,7 @@ sidebar = html.Div(
                         75: {'label': '75%'},
                         100: {'label': '100%'},
                     },
-                )
+                ),
             ]
         ),
         html.Br(),
@@ -200,12 +212,12 @@ def update_block_dropdown(basin_list):
 
 @app.callback(
     Output('congo-map', 'figure'),
-    [Input('block-select', 'value'), Input('opacity-slider', 'value')],
+    [Input('block-select', 'value'), Input('opacity-slider', 'value'), Input('map-select', 'value')],
 )
-def update_dashboard(block_list, opacity):
+def update_dashboard(block_list, opacity, maptype):
     if block_list is None or not len(block_list):
         raise PreventUpdate
-    return make_map(block_list, opacity=opacity/100)
+    return make_map(block_list, opacity=opacity/100, maptype=maptype)
 
 #----------------------- RUN --------------------------------------------------#
 
